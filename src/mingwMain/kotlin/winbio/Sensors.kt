@@ -99,6 +99,44 @@ fun WINBIO_SESSION_HANDLE.identify(block: (Identity<Any>) -> Unit) {
     }
 }
 
+fun WINBIO_SESSION_HANDLE.asyncIdentify() {
+
+    fun identifyCallback(
+        identifyCallbackContext: CPointer<out CPointed>?,
+        operationStatus: HRESULT,
+        unitId: WINBIO_UNIT_ID,
+        identity: CPointer<WINBIO_IDENTITY>?,
+        subFactor: WINBIO_BIOMETRIC_SUBTYPE,
+        rejectDetail: WINBIO_REJECT_DETAIL
+    ) {
+        println("Callback received.")
+        println("Operation status: $operationStatus")
+        println("Unit ID: $unitId")
+        println("User Identity: ${identity?.pointed?.Value}")
+        println("SubFactor: $subFactor")
+    }
+
+    memScoped {
+
+        println("Place your finger on the sensor.")
+        val result = WinBioIdentifyWithCallback(
+            this@asyncIdentify,
+            staticCFunction(::identifyCallback),
+            null
+        )
+        println("Processed...")
+
+        when (result) {
+            S_OK -> println("Identification successful.")
+            WINBIO_E_UNKNOWN_ID -> println("Unknown identity.")
+            WINBIO_E_BAD_CAPTURE -> println("Bad capture.")
+            else -> println("WinBioIdentify failed: $result")
+        }
+
+        WinBioWait(this@asyncIdentify)
+    }
+}
+
 fun WINBIO_SESSION_HANDLE.verify(identity: Identity<Any>) {
     verify(identity.toNative())
 }
@@ -131,5 +169,39 @@ fun WINBIO_SESSION_HANDLE.verify(identity: WINBIO_IDENTITY) {
             WINBIO_E_NO_MATCH -> println("No match.")
             else -> println("WinBioVerify failed: $result")
         }
+    }
+}
+
+fun WINBIO_SESSION_HANDLE.asyncVerify(identity: Identity<*>) {
+    asyncVerify(identity.toNative())
+}
+
+fun WINBIO_SESSION_HANDLE.asyncVerify(identity: WINBIO_IDENTITY) {
+
+    fun verifyCallback(
+        verifyCallbackContext: CPointer<out CPointed>?,
+        operationStatus: HRESULT,
+        unitId: WINBIO_UNIT_ID,
+        math: boolean,
+        rejectDetail: WINBIO_REJECT_DETAIL
+    ) {
+        println("Callback received.")
+        println("Operation status: $operationStatus")
+        println("Unit ID: $unitId")
+        println(math.toInt() == 1)
+    }
+
+    memScoped {
+        println("Place your finger on the sensor.")
+        val result = WinBioVerifyWithCallback(
+            this@asyncVerify,
+            identity.ptr,
+            245u,
+            staticCFunction(::verifyCallback),
+            null
+        )
+        println("Processed...")
+
+        WinBioWait(this@asyncVerify)
     }
 }
