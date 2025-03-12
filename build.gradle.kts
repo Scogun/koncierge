@@ -50,6 +50,14 @@ kotlin {
     androidTarget {
         publishLibraryVariants("debug", "release")
     }
+
+    sourceSets {
+        val androidMain by getting {
+            dependencies {
+                implementation("androidx.biometric:biometric:1.1.0")
+            }
+        }
+    }
 }
 
 android {
