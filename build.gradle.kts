@@ -1,8 +1,10 @@
 plugins {
     kotlin("multiplatform")
+    id("com.android.library") version "8.7.3"
 }
 
 repositories {
+    google()
     mavenCentral()
 }
 
@@ -44,5 +46,31 @@ kotlin {
                 }
             }
         }
+    }
+    androidTarget {
+        publishLibraryVariants("debug", "release")
+    }
+
+    sourceSets {
+        val androidMain by getting {
+            dependencies {
+                implementation("androidx.biometric:biometric:1.1.0")
+            }
+        }
+    }
+}
+
+android {
+    namespace = "com.ucasoft.koncierge"
+    compileSdk = 35
+    defaultConfig {
+        minSdk = 26
+        testOptions {
+            targetSdk = 35
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
