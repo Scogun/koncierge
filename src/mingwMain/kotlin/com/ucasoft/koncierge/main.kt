@@ -1,6 +1,7 @@
 package com.ucasoft.koncierge
 
 import kotlinx.cinterop.*
+import kotlinx.coroutines.runBlocking
 import platform.posix.memcpy
 import platform.windows.*
 import winbio.*
@@ -9,7 +10,15 @@ import winbio.DWORDVar
 
 @OptIn(ExperimentalForeignApi::class)
 fun main() {
-    enumBiometricUnits {
+    val koncierge = Koncierge()
+    if (koncierge.isBiometricAvailable()) {
+        val window = GetConsoleWindow()
+        SetForegroundWindow(window)
+        runBlocking {
+            koncierge.authenticate("Touch the sensor to authenticate")
+        }
+    }
+    /*enumBiometricUnits {
         forEach { unit ->
             println(
                 """
@@ -36,8 +45,7 @@ fun main() {
             println("Identify result: $it")
             verify(it)
         }
-    }
-
+    }*/
 }
 
 @OptIn(ExperimentalForeignApi::class)

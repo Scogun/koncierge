@@ -52,16 +52,16 @@ kotlin {
     }
 
     sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+            }
+        }
         val androidMain by getting {
             dependencies {
                 implementation("androidx.biometric:biometric:1.1.0")
             }
         }
-    }
-
-    // TODO Should be into `sourceSets` above
-    sourceSets.macosMain.dependencies {
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     }
 
     targets.configureEach {
