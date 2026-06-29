@@ -30,6 +30,10 @@ kotlin {
                         "-DWIN32_LEAN_AND_MEAN"
                     )
                 }
+                val windowsHello by creating {
+                    definitionFile.set(project.file("src/nativeInterop/cinterop/windowsHello.def"))
+                    includeDirs(project.file("src/nativeInterop/windows-hello/include"))
+                }
             }
         }
     }
@@ -54,7 +58,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
             }
         }
         val androidMain by getting {
@@ -75,7 +79,7 @@ kotlin {
 
 android {
     namespace = "com.ucasoft.koncierge"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         minSdk = 26
         testOptions {

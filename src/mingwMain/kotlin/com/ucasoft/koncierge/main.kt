@@ -8,14 +8,16 @@ import winbio.*
 import winbio.BYTEVar
 import winbio.DWORDVar
 
-@OptIn(ExperimentalForeignApi::class)
+//@OptIn(ExperimentalForeignApi::class)
 fun main() {
     val koncierge = Koncierge()
     if (koncierge.isBiometricAvailable()) {
+        println("Biometric available")
         val window = GetConsoleWindow()
         SetForegroundWindow(window)
         runBlocking {
-            koncierge.authenticate("Touch the sensor to authenticate")
+            println("Authenticating...")
+            println(koncierge.authenticate("Touch the sensor to authenticate"))
         }
     }
     /*enumBiometricUnits {

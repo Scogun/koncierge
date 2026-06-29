@@ -1,0 +1,4 @@
+headers = windows_hello.h
+package = windowshello
+compilerOpts = -Isrc/nativeInterop/windows-hello/include
+linkerOpts = -Lbuild/windows-hello-native/bin/Release -Lbuild/windows-hello-native/bin -lwindows_hello
