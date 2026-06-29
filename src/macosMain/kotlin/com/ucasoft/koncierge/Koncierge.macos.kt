@@ -29,15 +29,7 @@ actual class Koncierge {
                         if (success) {
                             continuation.resume(BiometricResults.AuthenticationSuccessful)
                         } else {
-                            continuation.resume(
-                                when (error?.code) {
-                                    LAErrorAuthenticationFailed -> BiometricResults.AuthenticationFailed
-                                    LAErrorUserCancel -> BiometricResults.AuthenticationCancelled
-                                    else -> BiometricResults.AuthenticationError(
-                                        error?.localizedDescription ?: "Unknown error"
-                                    )
-                                }
-                            )
+                            continuation.resume(error.toBiometricResult())
                         }
                     }
 
@@ -60,11 +52,23 @@ actual class Koncierge {
         }
 
         val error = errorRef.pointed.value
-        return when (error?.code) {
+        return error.toBiometricResult()
+    }
+
+    private fun NSError?.toBiometricResult(): BiometricResults {
+        return when (this?.code) {
+            LAErrorAuthenticationFailed -> BiometricResults.AuthenticationFailed
+            LAErrorUserCancel,
+            LAErrorSystemCancel,
+            LAErrorAppCancel,
+            LAErrorUserFallback -> BiometricResults.AuthenticationCancelled
             LAErrorBiometryNotAvailable -> BiometricResults.HardwareUnavailable
-            LAErrorBiometryNotEnrolled -> BiometricResults.NotEnrolled
+            LAErrorBiometryNotEnrolled,
+            LAErrorPasscodeNotSet -> BiometricResults.NotEnrolled
             LAErrorBiometryLockout -> BiometricResults.Locked
-            else -> throw UnsupportedOperationException(error?.localizedDescription)
+            LAErrorNotInteractive -> BiometricResults.FeatureUnavailable
+            LAErrorInvalidContext -> BiometricResults.AuthenticationError("Invalid authentication context")
+            else -> BiometricResults.AuthenticationError(this?.localizedDescription ?: "Unknown authentication error")
         }
     }
 }
