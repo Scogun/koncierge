@@ -126,6 +126,15 @@ repositories {
 }
 
 kotlin {
+    jvmToolchain(17)
+
+    androidLibrary {
+        namespace = "com.ucasoft.koncierge"
+        compileSdk = 36
+        minSdk = 26
+        buildToolsVersion = "36.1.0"
+    }
+
     if (isWindows) {
         mingwX64 {
             binaries {
@@ -160,15 +169,10 @@ kotlin {
             }
             compilations["main"].cinterops {
                 create("LocalAuthentication") {
-                    definitionFile = file("src/nativeInterop/cinterop/touchId.def")
+                    definitionFile.set(project.file("src/nativeInterop/cinterop/touchId.def"))
                 }
             }
         }
-    }
-    android {
-        namespace = "com.ucasoft.koncierge"
-        compileSdk = 36
-        minSdk = 26
     }
 
     sourceSets {
