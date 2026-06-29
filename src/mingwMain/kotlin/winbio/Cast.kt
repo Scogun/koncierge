@@ -34,29 +34,27 @@ fun WINBIO_IDENTITY.toIdentity() = Identity(
     }
 )
 
-fun Identity<*>.toNative() : WINBIO_IDENTITY {
-    return memScoped {
-        val result = alloc<WINBIO_IDENTITY>()
+fun Identity<*>.toNative(placement: NativePlacement): WINBIO_IDENTITY {
+    val result = placement.alloc<WINBIO_IDENTITY>()
 
-        result.Type = when (type) {
-            IdentityType.SID -> WINBIO_ID_TYPE_SID
-            IdentityType.NULL -> WINBIO_ID_TYPE_NULL
-            IdentityType.WILDCARD -> WINBIO_ID_TYPE_WILDCARD
-            IdentityType.GUID -> WINBIO_ID_TYPE_GUID
-        }
-
-        when (type) {
-            IdentityType.SID -> {
-                val sidArray = stringToSid(value as String)
-                val sid = result.Value.AccountSid
-                sid.Size = sidArray.size.convert()
-                memcpy(sid.Data, sidArray.refTo(0), sid.Size.convert())
-            }
-            else -> {}
-        }
-
-        result
+    result.Type = when (type) {
+        IdentityType.SID -> WINBIO_ID_TYPE_SID
+        IdentityType.NULL -> WINBIO_ID_TYPE_NULL
+        IdentityType.WILDCARD -> WINBIO_ID_TYPE_WILDCARD
+        IdentityType.GUID -> WINBIO_ID_TYPE_GUID
     }
+
+    when (type) {
+        IdentityType.SID -> {
+            val sidArray = stringToSid(value as String)
+            val sid = result.Value.AccountSid
+            sid.Size = sidArray.size.convert()
+            memcpy(sid.Data, sidArray.refTo(0), sid.Size.convert())
+        }
+        else -> {}
+    }
+
+    return result
 }
 
 private fun sidToKString(sid: anonymousStruct2): String {

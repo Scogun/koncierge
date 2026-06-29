@@ -51,19 +51,19 @@ fun main() {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-fun currentUserIdentity(): WINBIO_IDENTITY {
-    return memScoped {
-        val tokenHandler = alloc<HANDLEVar>()
-        if (OpenProcessToken(
-                GetCurrentProcess(),
-                TOKEN_READ.toUInt(),
-                tokenHandler.ptr
-            ) == 0
-        ) {
-            println("1: ${GetLastError()}")
-            throw RuntimeException("Failed to open process token")
-        }
+fun NativePlacement.currentUserIdentity(): WINBIO_IDENTITY {
+    val tokenHandler = alloc<HANDLEVar>()
+    if (OpenProcessToken(
+            GetCurrentProcess(),
+            TOKEN_READ.toUInt(),
+            tokenHandler.ptr
+        ) == 0
+    ) {
+        println("1: ${GetLastError()}")
+        throw RuntimeException("Failed to open process token")
+    }
 
+    try {
         val tokenLength = alloc<DWORDVar>()
         tokenLength.value = SECURITY_MAX_SID_SIZE.toUInt()
 
@@ -82,14 +82,14 @@ fun currentUserIdentity(): WINBIO_IDENTITY {
 
         val sid = token.reinterpret<TOKEN_USER>().pointed.User.Sid
 
-        CloseHandle(tokenHandler.value)
-
         val result = alloc<WINBIO_IDENTITY>()
         result.Type = WINBIO_ID_TYPE_SID
         val sidSize = GetLengthSid(sid)
         memcpy(result.Value.AccountSid.Data, sid, sidSize.convert())
         result.Value.AccountSid.Size = sidSize
 
-        result
+        return result
+    } finally {
+        CloseHandle(tokenHandler.value)
     }
 }

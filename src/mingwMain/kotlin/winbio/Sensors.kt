@@ -138,7 +138,9 @@ fun WINBIO_SESSION_HANDLE.asyncIdentify() {
 }
 
 fun WINBIO_SESSION_HANDLE.verify(identity: Identity<Any>) {
-    verify(identity.toNative())
+    memScoped {
+        verify(identity.toNative(this))
+    }
 }
 
 fun WINBIO_SESSION_HANDLE.verify(identity: WINBIO_IDENTITY) {
@@ -173,7 +175,9 @@ fun WINBIO_SESSION_HANDLE.verify(identity: WINBIO_IDENTITY) {
 }
 
 fun WINBIO_SESSION_HANDLE.asyncVerify(identity: Identity<*>) {
-    asyncVerify(identity.toNative())
+    memScoped {
+        asyncVerify(identity.toNative(this))
+    }
 }
 
 fun WINBIO_SESSION_HANDLE.asyncVerify(identity: WINBIO_IDENTITY) {

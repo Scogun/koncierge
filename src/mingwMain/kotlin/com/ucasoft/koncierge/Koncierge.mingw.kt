@@ -4,6 +4,7 @@ package com.ucasoft.koncierge
 import winbio.enumBiometricUnits
 import winbio.openSession
 import kotlin.random.Random
+import kotlinx.cinterop.memScoped
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
 import winbio.toIdentity
@@ -26,15 +27,15 @@ actual class Koncierge {
         if (verification.result == WindowsHelloVerificationResult.Verified) {
             return BiometricResults.AuthenticationSuccessful
         }
-
-
-        val identity = currentUserIdentity()
-        println(identity.toIdentity())
         return withTimeout(timeout) {
             suspendCancellableCoroutine { continuation ->
-                openSession {
-                    verify(identity)
-                    continuation.resume(BiometricResults.Available)
+                memScoped {
+                    val identity = currentUserIdentity()
+                    println(identity.toIdentity())
+                    openSession {
+                        verify(identity)
+                        continuation.resume(BiometricResults.Available)
+                    }
                 }
             }
         }
