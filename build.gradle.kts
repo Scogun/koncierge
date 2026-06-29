@@ -2,7 +2,7 @@ import java.io.File
 
 plugins {
     kotlin("multiplatform")
-    id("com.android.library") version "8.7.3"
+    id("com.android.kotlin.multiplatform.library") version "9.0.1"
 }
 
 val hostOs = System.getProperty("os.name")
@@ -134,7 +134,7 @@ kotlin {
                 }
             }
             compilations["main"].cinterops {
-                val wbf by creating {
+                create("wbf") {
                     includeDirs(
                         "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared",
                         "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um"
@@ -144,7 +144,7 @@ kotlin {
                         "-DWIN32_LEAN_AND_MEAN"
                     )
                 }
-                val windowsHello by creating {
+                create("windowsHello") {
                     definitionFile.set(project.file("src/nativeInterop/cinterop/windowsHello.def"))
                     includeDirs(project.file("src/nativeInterop/windows-hello/include"))
                 }
@@ -165,17 +165,19 @@ kotlin {
             }
         }
     }
-    androidTarget {
-        publishLibraryVariants("debug", "release")
+    android {
+        namespace = "com.ucasoft.koncierge"
+        compileSdk = 36
+        minSdk = 26
     }
 
     sourceSets {
-        val commonMain by getting {
+        getByName("commonMain") {
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
             }
         }
-        val androidMain by getting {
+        getByName("androidMain") {
             dependencies {
                 implementation("androidx.biometric:biometric:1.1.0")
             }
@@ -198,19 +200,4 @@ tasks.matching { it.name == "cinteropWindowsHelloMingwX64" }.configureEach {
 tasks.matching { it.name.startsWith("link") && it.name.endsWith("ExecutableMingwX64") }.configureEach {
     dependsOn(buildWindowsHelloNative)
     finalizedBy(copyWindowsHelloDll)
-}
-
-android {
-    namespace = "com.ucasoft.koncierge"
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 26
-        testOptions {
-            targetSdk = 35
-        }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
 }
