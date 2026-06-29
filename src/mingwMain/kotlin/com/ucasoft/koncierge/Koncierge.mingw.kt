@@ -1,12 +1,10 @@
 @file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
 package com.ucasoft.koncierge
 
-import winbio.enumBiometricUnits
-import winbio.openSession
-import kotlin.random.Random
 import kotlinx.cinterop.memScoped
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
+import winbio.openSession
 import winbio.toIdentity
 import winbio.verify
 import winhello.WindowsHello
@@ -27,6 +25,7 @@ actual class Koncierge {
         if (verification.result == WindowsHelloVerificationResult.Verified) {
             return BiometricResults.AuthenticationSuccessful
         }
+
         return withTimeout(timeout) {
             suspendCancellableCoroutine { continuation ->
                 memScoped {
