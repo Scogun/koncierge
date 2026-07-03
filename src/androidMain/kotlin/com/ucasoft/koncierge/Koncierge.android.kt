@@ -8,10 +8,6 @@ actual class Koncierge {
 
     private val authenticator: BiometricAuthenticator?
 
-    constructor() {
-        authenticator = null
-    }
-
     constructor(context: Context) {
         authenticator = BiometricAuthenticator(context)
     }

@@ -3,6 +3,7 @@ import java.io.File
 plugins {
     kotlin("multiplatform")
     id("com.android.kotlin.multiplatform.library") version "9.0.1"
+    id("com.vanniktech.maven.publish") version "0.37.0"
 }
 
 val hostOs = System.getProperty("os.name")
@@ -10,115 +11,172 @@ val isWindows = hostOs.startsWith("Windows")
 val isMac = hostOs.startsWith("Mac")
 
 val windowsHelloNativeDir = layout.projectDirectory.dir("src/nativeInterop/windows-hello")
-val windowsHelloNativeBuildDir = layout.buildDirectory.dir("windows-hello-native")
-val windowsHelloNativeBinDir = windowsHelloNativeBuildDir.map { it.dir("bin") }
-val cmakeExecutable = providers.gradleProperty("windowsHello.cmake")
-    .orElse(providers.environmentVariable("CMAKE_EXE"))
-    .orElse(knownVisualStudioCmakeLocations()
-        .firstOrNull { it.isFile }
-        ?.absolutePath
-        ?: "cmake")
+val windowsHelloNativeObjectFile = layout.buildDirectory.file("windows-hello-native/obj/windows_hello.o")
+val windowsHelloNativeArchiveFile = layout.buildDirectory.file("windows-hello-native/bin/Release/libwindows_hello.a")
+val windowsHelloJvmObjectFile = layout.buildDirectory.file("windows-hello-jvm/obj/windows_hello.o")
+val windowsHelloJvmLibraryFile = layout.buildDirectory.file("windows-hello-jvm/bin/windows_hello.dll")
+val windowsHelloJvmResourceFile =
+    layout.projectDirectory.file("src/jvmMain/resources/native/windows/x86-64/windows_hello.dll")
+val windowsHelloMingwRoot = providers.gradleProperty("windowsHello.mingwRoot")
+    .map(::File)
+    .orElse(providers.provider {
+        File(System.getProperty("user.home"), ".konan/dependencies/msys2-mingw-w64-x86_64-2")
+    })
 
-fun knownVisualStudioCmakeLocations(): List<File> {
-    if (!isWindows) {
-        return emptyList()
-    }
+fun windowsHelloMingwTool(name: String): File = File(windowsHelloMingwRoot.get(), "bin/$name.exe")
 
-    val programFiles = listOfNotNull(
-        System.getenv("ProgramFiles"),
-        System.getenv("ProgramFiles(x86)"),
-    ).distinct()
+fun registerWindowsHelloCompileTask(
+    taskName: String,
+    desc: String,
+    inputDirectory: Directory,
+    outputFile: Provider<RegularFile>,
+    linkingFlag: String
+) = tasks.register<Exec>(taskName) {
+    group = "build"
+    description = desc
+    onlyIf { isWindows }
 
-    val versions = listOf("18", "2026", "2022")
-    val editions = listOf("BuildTools", "Community", "Professional", "Enterprise")
+    inputs.dir(inputDirectory)
+    outputs.file(outputFile)
 
-    return programFiles.flatMap { root ->
-        versions.flatMap { version ->
-            editions.map { edition ->
-                File(
-                    root,
-                    "Microsoft Visual Studio/$version/$edition/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/cmake.exe",
-                )
-            }
+    doFirst {
+        val gcc = windowsHelloMingwTool("gcc")
+        if (!gcc.isFile) {
+            throw GradleException(
+                "MinGW gcc was not found at ${gcc.absolutePath}. " +
+                        "Run a mingwX64 Kotlin/Native task first, or set -PwindowsHello.mingwRoot=<path>."
+            )
         }
+
+        outputFile.get().asFile.parentFile.mkdirs()
+        environment("PATH", "${gcc.parentFile.absolutePath}${File.pathSeparator}${System.getenv("PATH")}")
+        commandLine(
+            gcc.absolutePath,
+            "-std=c11",
+            "-DWIN32_LEAN_AND_MEAN",
+            "-DNOMINMAX",
+            linkingFlag,
+            "-I${inputDirectory.dir("include").asFile.absolutePath}",
+            "-c",
+            inputDirectory.file("src/windows_hello.c").asFile.absolutePath,
+            "-o",
+            outputFile.get().asFile.absolutePath,
+        )
     }
 }
 
-val configureWindowsHelloNative = tasks.register<Exec>("configureWindowsHelloNative") {
+fun registerWindowsHelloBuildTask(
+    taskName: String,
+    desc: String,
+    inputDirectory: Directory,
+    inputFile: Provider<RegularFile>,
+    outputFile: Provider<RegularFile>,
+    toolName: String,
+    toolArguments: List<String>,
+    vararg resultFileArguments: String,
+) = tasks.register<Exec>(taskName) {
     group = "build"
-    description = "Configures the Windows Hello C++ bridge."
+    description = desc
     onlyIf { isWindows }
 
-    inputs.dir(windowsHelloNativeDir)
-    outputs.dir(windowsHelloNativeBuildDir)
+    inputs.dir(inputDirectory)
+    inputs.file(inputFile)
+    outputs.file(outputFile)
 
     doFirst {
+        val tool = windowsHelloMingwTool(toolName)
+        if (!tool.isFile) {
+            throw GradleException(
+                "MinGW $toolName was not found at ${tool.absolutePath}. " +
+                        "Run a mingwX64 Kotlin/Native task first, or set -PwindowsHello.mingwRoot=<path>."
+            )
+        }
+
+        val toolResultFile = outputFile.get().asFile
+        toolResultFile.parentFile.mkdirs()
+        if (toolResultFile.isFile && !toolResultFile.delete()) {
+            throw GradleException("Could not replace ${toolResultFile.absolutePath}.")
+        }
+
+        environment("PATH", "${tool.parentFile.absolutePath}${File.pathSeparator}${System.getenv("PATH")}")
         commandLine(
-            cmakeExecutable.get(),
-            "-S",
-            windowsHelloNativeDir.asFile.absolutePath,
-            "-B",
-            windowsHelloNativeBuildDir.get().asFile.absolutePath,
-            "-A",
-            "x64",
-            "-DCMAKE_BUILD_TYPE=Release",
+            tool.absolutePath,
+            *toolArguments.toTypedArray(),
+            toolResultFile.absolutePath,
+            *resultFileArguments
         )
     }
 }
 
-val buildWindowsHelloNative = tasks.register<Exec>("buildWindowsHelloNative") {
+val compileWindowsHelloNative = registerWindowsHelloCompileTask(
+    "compileWindowsHelloNative",
+    "Compiles the Windows Hello C bridge with MinGW.",
+    windowsHelloNativeDir,
+    windowsHelloNativeObjectFile,
+    "-DWINDOWS_HELLO_STATIC"
+)
+
+val buildWindowsHelloNative = registerWindowsHelloBuildTask(
+    "buildWindowsHelloNative",
+    "Builds the Windows Hello static archive used by Kotlin/Native.",
+    windowsHelloNativeDir,
+    windowsHelloNativeObjectFile,
+    windowsHelloNativeArchiveFile,
+    "ar",
+    listOf("rcs"),
+    windowsHelloNativeObjectFile.get().asFile.absolutePath
+)
+
+val compileWindowsHelloJvmNative = registerWindowsHelloCompileTask(
+    "compileWindowsHelloJvmNative",
+    "Compiles the Windows Hello C bridge used by the JVM target.",
+    windowsHelloNativeDir,
+    windowsHelloJvmObjectFile,
+    "-DWINDOWS_HELLO_EXPORTS"
+)
+
+val buildWindowsHelloJvmNative = registerWindowsHelloBuildTask(
+    "buildWindowsHelloJvmNative",
+    "Builds the Windows Hello static archive used by the JVM target.",
+    windowsHelloNativeDir,
+    windowsHelloJvmObjectFile,
+    windowsHelloJvmLibraryFile,
+    "gcc",
+    listOf("-shared", "-static", "-static-libgcc", "-o"),
+    windowsHelloJvmLibraryFile.get().asFile.absolutePath,
+    "-lruntimeobject",
+    "-luser32",
+)
+
+val syncWindowsHelloJvmNativeResource = tasks.register<Copy>("syncWindowsHelloJvmNativeResource") {
     group = "build"
-    description = "Builds the Windows Hello DLL used by Kotlin/Native."
+    description = "Refreshes the packaged Windows Hello JVM DLL resource."
     onlyIf { isWindows }
-    dependsOn(configureWindowsHelloNative)
+    dependsOn(buildWindowsHelloJvmNative)
 
-    inputs.dir(windowsHelloNativeDir)
-    outputs.dir(windowsHelloNativeBinDir)
-
-    doFirst {
-        commandLine(
-            cmakeExecutable.get(),
-            "--build",
-            windowsHelloNativeBuildDir.get().asFile.absolutePath,
-            "--config",
-            "Release",
-        )
-    }
+    from(windowsHelloJvmLibraryFile)
+    into(windowsHelloJvmResourceFile.asFile.parentFile)
 }
 
-val copyWindowsHelloDll = tasks.register("copyWindowsHelloDll") {
-    group = "build"
-    description = "Copies windows_hello.dll beside MinGW executables."
-    onlyIf { isWindows }
-    dependsOn(buildWindowsHelloNative)
+val verifyWindowsHelloJvmNativeResource = tasks.register("verifyWindowsHelloJvmNativeResource") {
+    group = "verification"
+    description = "Verifies that the Windows Hello JVM DLL is packaged as a source resource."
 
-    val dllCandidates = windowsHelloNativeBinDir.map { binDir ->
-        listOf(
-            binDir.file("Release/windows_hello.dll").asFile,
-            binDir.file("windows_hello.dll").asFile,
-        )
-    }
-
-    inputs.files(dllCandidates)
-    outputs.dirs(
-        layout.buildDirectory.dir("bin/mingwX64/debugExecutable"),
-        layout.buildDirectory.dir("bin/mingwX64/releaseExecutable"),
-    )
+    inputs.file(windowsHelloJvmResourceFile)
 
     doLast {
-        val dll = dllCandidates.get().firstOrNull(File::isFile)
-            ?: throw GradleException("windows_hello.dll was not produced by the native build.")
-
-        copy {
-            from(dll)
-            into(layout.buildDirectory.dir("bin/mingwX64/debugExecutable"))
-        }
-        copy {
-            from(dll)
-            into(layout.buildDirectory.dir("bin/mingwX64/releaseExecutable"))
+        if (!windowsHelloJvmResourceFile.asFile.isFile) {
+            throw GradleException(
+                "Missing ${windowsHelloJvmResourceFile.asFile}. " +
+                    "Run syncWindowsHelloJvmNativeResource on Windows before publishing."
+            )
         }
     }
 }
+
+group = "com.ucasoft.koncierge"
+
+version = "0.1.0"
 
 repositories {
     google()
@@ -127,6 +185,8 @@ repositories {
 
 kotlin {
     jvmToolchain(17)
+
+    jvm()
 
     androidLibrary {
         namespace = "com.ucasoft.koncierge"
@@ -176,12 +236,17 @@ kotlin {
     }
 
     sourceSets {
-        getByName("commonMain") {
+        commonMain {
             dependencies {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
             }
         }
-        getByName("androidMain") {
+        jvmMain {
+            dependencies {
+                implementation("net.java.dev.jna:jna:5.19.1")
+            }
+        }
+        androidMain {
             dependencies {
                 implementation("androidx.biometric:biometric:1.1.0")
             }
@@ -203,5 +268,8 @@ tasks.matching { it.name == "cinteropWindowsHelloMingwX64" }.configureEach {
 
 tasks.matching { it.name.startsWith("link") && it.name.endsWith("ExecutableMingwX64") }.configureEach {
     dependsOn(buildWindowsHelloNative)
-    finalizedBy(copyWindowsHelloDll)
+}
+
+tasks.named("jvmProcessResources") {
+    dependsOn(verifyWindowsHelloJvmNativeResource)
 }

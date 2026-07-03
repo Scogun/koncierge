@@ -5,3 +5,4 @@ build
 .kotlin
 
 local.properties
+**/windows_hello.dll

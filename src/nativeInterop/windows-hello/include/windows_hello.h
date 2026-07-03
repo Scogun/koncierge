@@ -3,7 +3,9 @@
 #include <stdint.h>
 #include <wchar.h>
 
-#ifdef _WIN32
+#if defined(WINDOWS_HELLO_STATIC)
+    #define WINDOWS_HELLO_API
+#elif defined(_WIN32)
     #ifdef WINDOWS_HELLO_EXPORTS
         #define WINDOWS_HELLO_API __declspec(dllexport)
     #else
