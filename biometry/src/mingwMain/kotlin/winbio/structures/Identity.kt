@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalForeignApi::class)
+/*@file:OptIn(ExperimentalForeignApi::class)
 package winbio.structures
 
 import kotlinx.cinterop.*
@@ -39,4 +39,4 @@ enum class RejectDetail(val value: UInt) {
             return entries.find { it.value == value } ?: throw IllegalArgumentException("Unknown value: $value")
         }
     }
-}
+}*/

@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalForeignApi::class)
+/*@file:OptIn(ExperimentalForeignApi::class)
 package winbio
 
 import kotlinx.cinterop.*
@@ -134,4 +134,4 @@ private fun stringToSid(sid: String) : ByteArray {
     }
 
     return result
-}
+}*/

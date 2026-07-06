@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalForeignApi::class)
+/*@file:OptIn(ExperimentalForeignApi::class)
 package winbio
 
 import kotlinx.cinterop.*
@@ -208,4 +208,4 @@ fun WINBIO_SESSION_HANDLE.asyncVerify(identity: WINBIO_IDENTITY) {
 
         WinBioWait(this@asyncVerify)
     }
-}
+}*/

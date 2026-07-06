@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalForeignApi::class)
+/*@file:OptIn(ExperimentalForeignApi::class)
 package winbio.structures
 
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -62,4 +62,4 @@ data class UnitSchema (
     val model: String,
     val serialNumber: String,
     val firmwareVersion: Version
-)
+)*/
