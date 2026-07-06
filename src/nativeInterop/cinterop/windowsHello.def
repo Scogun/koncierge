@@ -1,0 +1,6 @@
+headers = windows_hello.h
+package = windowshello
+compilerOpts = -DWINDOWS_HELLO_STATIC -Isrc/nativeInterop/windows-hello/include
+staticLibraries = libwindows_hello.a
+libraryPaths = build/windows-hello-native/bin/Release build/windows-hello-native/bin
+linkerOpts = -lruntimeobject -luser32
