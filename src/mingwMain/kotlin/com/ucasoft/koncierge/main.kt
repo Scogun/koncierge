@@ -1,14 +1,9 @@
 package com.ucasoft.koncierge
 
-import kotlinx.cinterop.*
 import kotlinx.coroutines.runBlocking
-import platform.posix.memcpy
-import platform.windows.*
-import winbio.*
-import winbio.BYTEVar
-import winbio.DWORDVar
+import platform.windows.GetConsoleWindow
+import platform.windows.SetForegroundWindow
 
-//@OptIn(ExperimentalForeignApi::class)
 fun main() {
     val koncierge = Koncierge()
     if (koncierge.isBiometricAvailable()) {
@@ -50,7 +45,7 @@ fun main() {
     }*/
 }
 
-@OptIn(ExperimentalForeignApi::class)
+/*@OptIn(ExperimentalForeignApi::class)
 fun NativePlacement.currentUserIdentity(): WINBIO_IDENTITY {
     val tokenHandler = alloc<HANDLEVar>()
     if (OpenProcessToken(
@@ -92,4 +87,4 @@ fun NativePlacement.currentUserIdentity(): WINBIO_IDENTITY {
     } finally {
         CloseHandle(tokenHandler.value)
     }
-}
+}*/

@@ -203,7 +203,8 @@ kotlin {
                 }
             }
             compilations["main"].cinterops {
-                create("wbf") {
+                // TODO Disable WinBio for now
+                /*create("wbf") {
                     includeDirs(
                         "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared",
                         "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um"
@@ -212,12 +213,15 @@ kotlin {
                         "-D_AMD64_",
                         "-DWIN32_LEAN_AND_MEAN"
                     )
-                }
+                }*/
                 create("windowsHello") {
                     definitionFile.set(project.file("src/nativeInterop/cinterop/windowsHello.def"))
                     includeDirs(project.file("src/nativeInterop/windows-hello/include"))
                 }
             }
+        }
+        compilerOptions {
+            freeCompilerArgs.add("-Xexpect-actual-classes")
         }
     }
     if (isMac) {
