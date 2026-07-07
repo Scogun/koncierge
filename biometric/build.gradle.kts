@@ -215,9 +215,6 @@ kotlin {
                 }
             }
         }
-        compilerOptions {
-            freeCompilerArgs.add("-Xexpect-actual-classes")
-        }
     }
     if (isMac) {
         macosArm64 {
@@ -234,20 +231,24 @@ kotlin {
         }
     }
 
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
+
     sourceSets {
         commonMain {
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
         jvmMain {
             dependencies {
-                implementation("net.java.dev.jna:jna:5.19.1")
+                implementation(libs.jna)
             }
         }
         androidMain {
             dependencies {
-                implementation("androidx.biometric:biometric:1.1.0")
+                implementation(libs.biometric)
             }
         }
     }
