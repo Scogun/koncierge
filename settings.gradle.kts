@@ -11,4 +11,5 @@ plugins {
 
 rootProject.name = "koncierge"
 
+include(":auth")
 include(":biometry")

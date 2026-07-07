@@ -2,8 +2,13 @@
 kotlin = "2.4.0"
 agp = "9.0.1"
 publish = "0.37.0"
+cryptography = "0.6.0"
 
 [plugins]
 multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 android-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "publish" }
+
+[libraries]
+cryptography-core = { group = "dev.whyoleg.cryptography", name = "cryptography-core", version.ref = "cryptography" }
+cryptography-provider-optimal = { group = "dev.whyoleg.cryptography", name = "cryptography-provider-optimal", version.ref = "cryptography" }
