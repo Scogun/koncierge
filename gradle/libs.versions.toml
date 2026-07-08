@@ -7,6 +7,7 @@ jna = "5.19.1"
 publish = "0.37.0"
 cryptography = "0.6.0"
 settings = "1.3.0"
+kotest = "6.2.2"
 
 [plugins]
 multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -22,5 +23,8 @@ cryptography-provider-optimal = { group = "dev.whyoleg.cryptography", name = "cr
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx" }
 
 multiplatform-settings = { group = "com.russhwolf", name = "multiplatform-settings-no-arg", version.ref = "settings" }
+
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
