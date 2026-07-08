@@ -12,4 +12,5 @@ plugins {
 rootProject.name = "koncierge"
 
 include(":auth")
+include(":auth-compose")
 include(":biometric")
