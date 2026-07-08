@@ -22,8 +22,10 @@ open class Authenticator(
         return constantTimeEquals(storedPinCodeHash, pinCodeHash)
     }
 
+    fun isBiometryAvailable(): Boolean = koncierge.isBiometricAvailable()
+
     suspend fun verifyBiometry(): Boolean {
-        if (koncierge.isBiometricAvailable()) {
+        if (isBiometryAvailable()) {
             return koncierge.authenticate("") == BiometricResults.AuthenticationSuccessful
         }
 

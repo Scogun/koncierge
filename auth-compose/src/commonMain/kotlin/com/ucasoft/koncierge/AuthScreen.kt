@@ -52,7 +52,7 @@ fun AuthScreenDarkPreview() {
             onSurface = Color(0xFFFFEDEA),
         )
     ) {
-        AuthScreenPreviewContent()
+        AuthScreenPreviewContent(false)
     }
 }
 
@@ -71,7 +71,7 @@ fun AuthScreenPreview() {
 }
 
 @Composable
-private fun AuthScreenPreviewContent() {
+private fun AuthScreenPreviewContent(showBiometry: Boolean = true) {
     AuthScreen(
         title = {
             Text("Koncierge", fontSize = 36.sp, fontWeight = FontWeight.Bold)
@@ -81,7 +81,8 @@ private fun AuthScreenPreviewContent() {
                 text = "Your Multiplatform Compose UI Auth Screen",
                 fontSize = 18.sp
             )
-        }
+        },
+        showBiometry = showBiometry
     )
 }
 
@@ -94,10 +95,12 @@ fun AuthScreen(
     invitation: @Composable () -> Unit = { Text("Enter your PIN", style = MaterialTheme.typography.headlineSmall) },
     supportingContent: @Composable () -> Unit = {},
     pinLength: Int = 4,
+    biometryEnabled: Boolean = true,
     onAuthorizationFailed: (AuthScreenAuthorizationMethod) -> Unit = {},
     onAuthorized: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val showBiometry = biometryEnabled && authenticator.isBiometryAvailable()
 
     AuthScreen(
         title = title,
@@ -106,6 +109,7 @@ fun AuthScreen(
         invitation = invitation,
         supportingContent = supportingContent,
         pinLength = pinLength,
+        showBiometry = showBiometry,
         onPinCodeEntered = { pinCode ->
             scope.launch {
                 if (authenticator.verifyPinCode(pinCode)) {
@@ -140,6 +144,7 @@ fun AuthScreen(
     invitation: @Composable () -> Unit = { Text("Enter your PIN", style = MaterialTheme.typography.headlineSmall) },
     supportingContent: @Composable () -> Unit = {},
     pinLength: Int = 4,
+    showBiometry: Boolean = true,
     onPinCodeEntered: (String) -> Unit = {},
     onBiometryRequested: () -> Unit = {},
 ) {
@@ -201,7 +206,8 @@ fun AuthScreen(
                                     if (pin.isNotEmpty()) {
                                         pin = pin.dropLast(1)
                                     }
-                                }
+                                },
+                                showBiometry = showBiometry,
                             )
                             Spacer(modifier = Modifier.weight(1f))
                             supportingContent()
@@ -238,7 +244,8 @@ fun AuthScreen(
                             if (pin.isNotEmpty()) {
                                 pin = pin.dropLast(1)
                             }
-                        }
+                        },
+                        showBiometry = showBiometry,
                     )
                     supportingContent()
                 }
@@ -267,6 +274,7 @@ private fun PinKeypad(
     onNumberClick: (Char) -> Unit,
     onBiometricClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    showBiometry: Boolean,
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
@@ -281,8 +289,12 @@ private fun PinKeypad(
             }
         }
         item {
-            Box(modifier = Modifier.height(64.dp).clickable { onBiometricClick() }, contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Fingerprint, contentDescription = "Bio", modifier = Modifier.size(36.dp))
+            if (showBiometry) {
+                Box(modifier = Modifier.height(64.dp).clickable { onBiometricClick() }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Fingerprint, contentDescription = "Bio", modifier = Modifier.size(36.dp))
+                }
+            } else {
+                Spacer(modifier = Modifier.height(64.dp))
             }
         }
         val zeroKeyCaption = '0'
