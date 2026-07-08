@@ -2,7 +2,6 @@ package com.ucasoft.koncierge
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -10,25 +9,69 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.window.core.layout.WindowSizeClass
+import kotlinx.coroutines.launch
 
 @Composable
 @Preview(
     widthDp = 800,
 )
+fun AuthScreenWidePreview() {
+    MaterialTheme(
+        colorScheme = lightColorScheme(
+            primary = Color(0xFF006D3D),
+            surface = Color(0xFFF2FFF6),
+            onSurface = Color(0xFF102018),
+        )
+    ) {
+        AuthScreenPreviewContent()
+    }
+}
+
+@Composable
+@Preview(
+    name = "Dark Coral",
+    widthDp = 360,
+)
+fun AuthScreenDarkPreview() {
+    MaterialTheme(
+        colorScheme = darkColorScheme(
+            primary = Color(0xFFFFB4A8),
+            surface = Color(0xFF241816),
+            onSurface = Color(0xFFFFEDEA),
+        )
+    ) {
+        AuthScreenPreviewContent()
+    }
+}
+
+@Composable
+@Preview
 fun AuthScreenPreview() {
+    MaterialTheme(
+        colorScheme = lightColorScheme(
+            primary = Color(0xFF4B5DCE),
+            surface = Color(0xFFF7F4FF),
+            onSurface = Color(0xFF181A2F),
+        )
+    ) {
+        AuthScreenPreviewContent()
+    }
+}
+
+@Composable
+private fun AuthScreenPreviewContent() {
     AuthScreen(
         title = {
             Text("Koncierge", fontSize = 36.sp, fontWeight = FontWeight.Bold)
@@ -39,9 +82,54 @@ fun AuthScreenPreview() {
                 fontSize = 18.sp
             )
         }
-    ) {
+    )
+}
 
-    }
+@Composable
+fun AuthScreen(
+    authenticator: Authenticator,
+    title: @Composable () -> Unit,
+    description: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    invitation: @Composable () -> Unit = { Text("Enter your PIN", style = MaterialTheme.typography.headlineSmall) },
+    supportingContent: @Composable () -> Unit = {},
+    pinLength: Int = 4,
+    onAuthorizationFailed: (AuthScreenAuthorizationMethod) -> Unit = {},
+    onAuthorized: () -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+
+    AuthScreen(
+        title = title,
+        description = description,
+        modifier = modifier,
+        invitation = invitation,
+        supportingContent = supportingContent,
+        pinLength = pinLength,
+        onPinCodeEntered = { pinCode ->
+            scope.launch {
+                if (authenticator.verifyPinCode(pinCode)) {
+                    onAuthorized()
+                } else {
+                    onAuthorizationFailed(AuthScreenAuthorizationMethod.PinCode)
+                }
+            }
+        },
+        onBiometryRequested = {
+            scope.launch {
+                if (authenticator.verifyBiometry()) {
+                    onAuthorized()
+                } else {
+                    onAuthorizationFailed(AuthScreenAuthorizationMethod.Biometry)
+                }
+            }
+        },
+    )
+}
+
+enum class AuthScreenAuthorizationMethod {
+    PinCode,
+    Biometry,
 }
 
 @Composable
@@ -49,14 +137,18 @@ fun AuthScreen(
     title: @Composable () -> Unit,
     description: @Composable () -> Unit,
     modifier: Modifier = Modifier,
-    invitation: @Composable () -> Unit = { Text("Enter your PIN", fontSize = 24.sp, fontWeight = FontWeight.SemiBold) },
+    invitation: @Composable () -> Unit = { Text("Enter your PIN", style = MaterialTheme.typography.headlineSmall) },
     supportingContent: @Composable () -> Unit = {},
     pinLength: Int = 4,
-    onAuthorize: () -> Unit,
+    onPinCodeEntered: (String) -> Unit = {},
+    onBiometryRequested: () -> Unit = {},
 ) {
     var pin by remember { mutableStateOf("") }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val containerColor = MaterialTheme.colorScheme.surface
+        val contentColor = contentColorFor(containerColor)
+
         val isWideScreen = maxWidth > WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND.dp
 
         if (isWideScreen) {
@@ -65,83 +157,91 @@ fun AuthScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.background)
+                        .background(containerColor)
                         .padding(48.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.Start
                 ) {
-                    title()
-                    Spacer(modifier = Modifier.height(16.dp))
-                    description()
+                    CompositionLocalProvider(LocalContentColor provides contentColor) {
+                        title()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        description()
+                    }
                 }
 
                 Box(modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.surface),
+                    .background(containerColor),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(modifier = Modifier
-                        .width(360.dp)
-                        .padding(vertical = 48.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        invitation()
-                        Spacer(modifier = Modifier.height(32.dp))
-                        PinDots(pin.length, pinLength)
-                        Spacer(modifier = Modifier.weight(1f))
-                        PinKeypad(
-                            onNumberClick = {
-                                pin += it
-                                if (pin.length == pinLength) {
-                                    onAuthorize()
+                    CompositionLocalProvider(LocalContentColor provides contentColor) {
+                        Column(
+                            modifier = Modifier
+                                .width(360.dp)
+                                .padding(vertical = 48.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            invitation()
+                            Spacer(modifier = Modifier.height(32.dp))
+                            PinDots(pin.length, pinLength)
+                            Spacer(modifier = Modifier.weight(1f))
+                            PinKeypad(
+                                onNumberClick = {
+                                    pin += it
+                                    if (pin.length == pinLength) {
+                                        onPinCodeEntered(pin)
+                                        pin = ""
+                                    }
+                                },
+                                onBiometricClick = {
+                                    onBiometryRequested()
+                                },
+                                onDeleteClick = {
+                                    if (pin.isNotEmpty()) {
+                                        pin = pin.dropLast(1)
+                                    }
                                 }
-                            },
-                            onBiometricClick = {
-                                onAuthorize()
-                            },
-                            onDeleteClick = {
-                                if (pin.isNotEmpty()) {
-                                    pin = pin.dropLast(1)
-                                }
-                            }
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        supportingContent()
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            supportingContent()
+                        }
                     }
                 }
             }
         } else {
             Column(modifier = Modifier
                 .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.surface),
+                .background(containerColor),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.weight(0.4f))
-                title()
-                Spacer(modifier = Modifier.height(32.dp))
-                invitation()
-                Spacer(modifier = Modifier.height(32.dp))
-                PinDots(pin.length, pinLength)
-                Spacer(modifier = Modifier.height(24.dp))
-                PinKeypad(
-                    onNumberClick = {
-                        pin += it
-                        if (pin.length == pinLength) {
-                            onAuthorize()
-                            pin = ""
+                CompositionLocalProvider(LocalContentColor provides contentColor) {
+                    Spacer(modifier = Modifier.weight(0.4f))
+                    title()
+                    Spacer(modifier = Modifier.height(32.dp))
+                    invitation()
+                    Spacer(modifier = Modifier.height(32.dp))
+                    PinDots(pin.length, pinLength)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    PinKeypad(
+                        onNumberClick = {
+                            pin += it
+                            if (pin.length == pinLength) {
+                                onPinCodeEntered(pin)
+                                pin = ""
+                            }
+                        },
+                        onBiometricClick = {
+                            onBiometryRequested()
+                        },
+                        onDeleteClick = {
+                            if (pin.isNotEmpty()) {
+                                pin = pin.dropLast(1)
+                            }
                         }
-                    },
-                    onBiometricClick = {
-                        onAuthorize()
-                    },
-                    onDeleteClick = {
-                        if (pin.isNotEmpty()) {
-                            pin = pin.dropLast(1)
-                        }
-                    }
-                )
-                supportingContent()
+                    )
+                    supportingContent()
+                }
             }
         }
     }
@@ -200,9 +300,12 @@ private fun KeypadItem(text: Char, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .height(64.dp)
-            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onClick() },
+            .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        Text(text = text.toString(), fontSize = 32.sp, textAlign = TextAlign.Center)
+        Text(
+            text = text.toString(),
+            style = MaterialTheme.typography.headlineMedium,
+            textAlign = TextAlign.Center)
     }
 }
