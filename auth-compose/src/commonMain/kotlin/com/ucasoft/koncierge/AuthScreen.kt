@@ -96,11 +96,37 @@ fun AuthScreen(
     supportingContent: @Composable () -> Unit = {},
     pinLength: Int = 4,
     biometryEnabled: Boolean = true,
+    autoRequestBiometry: Boolean = true,
     onAuthorizationFailed: (AuthScreenAuthorizationMethod) -> Unit = {},
     onAuthorized: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val showBiometry = biometryEnabled && authenticator.isBiometryAvailable()
+    val currentOnAuthorized by rememberUpdatedState(onAuthorized)
+    val currentOnAuthorizationFailed by rememberUpdatedState(onAuthorizationFailed)
+    var biometryRequestInProgress by remember { mutableStateOf(false) }
+
+    suspend fun requestBiometry() {
+        if (biometryRequestInProgress) {
+            return
+        }
+
+        biometryRequestInProgress = true
+        val authorized = authenticator.verifyBiometry()
+        biometryRequestInProgress = false
+
+        if (authorized) {
+            currentOnAuthorized()
+        } else {
+            currentOnAuthorizationFailed(AuthScreenAuthorizationMethod.Biometry)
+        }
+    }
+
+    LaunchedEffect(authenticator, showBiometry, autoRequestBiometry) {
+        if (showBiometry && autoRequestBiometry) {
+            requestBiometry()
+        }
+    }
 
     AuthScreen(
         title = title,
@@ -113,19 +139,15 @@ fun AuthScreen(
         onPinCodeEntered = { pinCode ->
             scope.launch {
                 if (authenticator.verifyPinCode(pinCode)) {
-                    onAuthorized()
+                    currentOnAuthorized()
                 } else {
-                    onAuthorizationFailed(AuthScreenAuthorizationMethod.PinCode)
+                    currentOnAuthorizationFailed(AuthScreenAuthorizationMethod.PinCode)
                 }
             }
         },
         onBiometryRequested = {
             scope.launch {
-                if (authenticator.verifyBiometry()) {
-                    onAuthorized()
-                } else {
-                    onAuthorizationFailed(AuthScreenAuthorizationMethod.Biometry)
-                }
+                requestBiometry()
             }
         },
     )
