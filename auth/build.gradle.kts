@@ -19,7 +19,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                api(project(":biometry"))
+                api(project(":biometric"))
                 implementation("dev.whyoleg.cryptography:cryptography-core:0.6.0")
                 implementation("dev.whyoleg.cryptography:cryptography-provider-optimal:0.6.0")
             }
