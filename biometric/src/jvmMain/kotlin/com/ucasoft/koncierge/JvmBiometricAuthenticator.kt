@@ -11,7 +11,7 @@ internal fun currentJvmBiometricAuthenticator(): JvmBiometricAuthenticator {
     return when (JvmOperatingSystem.current()) {
         JvmOperatingSystem.Windows -> WindowsHelloJvmBiometricAuthenticator()
         JvmOperatingSystem.Linux -> LinuxFprintdBiometricAuthenticator()
-        JvmOperatingSystem.Mac,
+        JvmOperatingSystem.Mac -> MacOsJvmBiometricAuthenticator()
         JvmOperatingSystem.Unsupported -> UnsupportedJvmBiometricAuthenticator
     }
 }

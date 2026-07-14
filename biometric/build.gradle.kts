@@ -15,13 +15,14 @@ val windowsHelloNativeObjectFile = layout.buildDirectory.file("windows-hello-nat
 val windowsHelloNativeArchiveFile = layout.buildDirectory.file("windows-hello-native/bin/Release/libwindows_hello.a")
 val windowsHelloJvmObjectFile = layout.buildDirectory.file("windows-hello-jvm/obj/windows_hello.o")
 val windowsHelloJvmLibraryFile = layout.buildDirectory.file("windows-hello-jvm/bin/windows_hello.dll")
-val windowsHelloJvmResourceFile =
-    layout.projectDirectory.file("src/jvmMain/resources/native/windows/x86-64/windows_hello.dll")
+val windowsHelloJvmResourceFile = layout.projectDirectory.file("src/jvmMain/resources/native/windows/x86-64/windows_hello.dll")
 val windowsHelloMingwRoot = providers.gradleProperty("windowsHello.mingwRoot")
     .map(::File)
     .orElse(providers.provider {
         File(System.getProperty("user.home"), ".konan/dependencies/msys2-mingw-w64-x86_64-2")
     })
+val macosBiometricJvmArm64LibraryFile = layout.buildDirectory.file("bin/macosArm64/jvmBridgeReleaseShared/libkoncierge_macos_biometric.dylib")
+val macosBiometricJvmResourcesDir = layout.buildDirectory.dir("generated/macos-biometric-jvm/resources")
 
 fun windowsHelloMingwTool(name: String): File = File(windowsHelloMingwRoot.get(), "bin/$name.exe")
 
@@ -147,7 +148,7 @@ val buildWindowsHelloJvmNative = registerWindowsHelloBuildTask(
     windowsHelloJvmLibraryFile,
     "gcc",
     listOf("-shared", "-static", "-static-libgcc", "-o"),
-    windowsHelloJvmLibraryFile.get().asFile.absolutePath,
+    windowsHelloJvmObjectFile.get().asFile.absolutePath,
     "-lruntimeobject",
     "-luser32",
 )
@@ -162,11 +163,21 @@ val syncWindowsHelloJvmNativeResource = tasks.register<Copy>("syncWindowsHelloJv
     into(windowsHelloJvmResourceFile.asFile.parentFile)
 }
 
+val syncMacosBiometricJvmNativeResource = tasks.register<Sync>("syncMacosBiometricJvmNativeResource") {
+    group = "build"
+    description = "Stages the macOS LocalAuthentication bridge as a JVM resource."
+    onlyIf { isMac }
+    dependsOn("linkJvmBridgeReleaseSharedMacosArm64")
+
+    from(macosBiometricJvmArm64LibraryFile) {
+        into("native/macos/arm64")
+    }
+    into(macosBiometricJvmResourcesDir)
+}
+
 val verifyWindowsHelloJvmNativeResource = tasks.register("verifyWindowsHelloJvmNativeResource") {
     group = "verification"
     description = "Verifies that the Windows Hello JVM DLL is packaged as a source resource."
-
-    inputs.file(windowsHelloJvmResourceFile)
 
     doLast {
         if (!windowsHelloJvmResourceFile.asFile.isFile) {
@@ -222,6 +233,10 @@ kotlin {
                 executable {
                     entryPoint = "com.ucasoft.koncierge.main"
                 }
+                sharedLib("jvmBridge", listOf(RELEASE)) {
+                    baseName = "koncierge_macos_biometric"
+                    linkerOpts("-Wl,-install_name,@rpath/libkoncierge_macos_biometric.dylib")
+                }
             }
             compilations["main"].cinterops {
                 create("LocalAuthentication") {
@@ -242,6 +257,7 @@ kotlin {
             }
         }
         jvmMain {
+            resources.srcDir(macosBiometricJvmResourcesDir)
             dependencies {
                 implementation(libs.jna)
             }
@@ -270,6 +286,14 @@ tasks.matching { it.name.startsWith("link") && it.name.endsWith("ExecutableMingw
     dependsOn(buildWindowsHelloNative)
 }
 
-tasks.named("jvmProcessResources") {
-    dependsOn(verifyWindowsHelloJvmNativeResource)
+if (isWindows) {
+    tasks.named("jvmProcessResources") {
+        dependsOn(verifyWindowsHelloJvmNativeResource)
+    }
+}
+
+if (isMac) {
+    tasks.named("jvmProcessResources") {
+        dependsOn(syncMacosBiometricJvmNativeResource)
+    }
 }
