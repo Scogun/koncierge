@@ -290,3 +290,11 @@ if (isMac) {
         dependsOn(syncMacosBiometricJvmNativeResource)
     }
 }
+
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+    pom {
+        configurePom("Koncierge Biometric", "The main library for Multiplatform Biometric authentication", this)
+    }
+}

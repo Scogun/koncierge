@@ -49,3 +49,11 @@ kotlin {
         }
     }
 }
+
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+    pom {
+        configurePom("Koncierge Auth Compose", "Support library provides basic Compose UI for Auth functionality", this)
+    }
+}

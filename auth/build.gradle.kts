@@ -42,3 +42,11 @@ kotlin {
         }
     }
 }
+
+mavenPublishing {
+    publishToMavenCentral()
+    signAllPublications()
+    pom {
+        configurePom("Koncierge Auth", "Support library provides basic Auth functionality", this)
+    }
+}
