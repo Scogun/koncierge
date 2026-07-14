@@ -151,8 +151,6 @@ jobs:
           :biometric:publishMacosArm64PublicationToMavenCentralRepository
           :biometric:mergeMingwX64Publication
           -Pkoncierge.includeMingwX64InPublicationMetadata=true
-          -PmavenCentralAutomaticPublishing=true
-          -PmavenCentralDeploymentValidation=PUBLISHED
           -Psigning.secretKeyRingFile="$GRADLE_USER_HOME/secring.gpg"
           -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}"
           -Psigning.password="${{ secrets.SIGNING_PASSWORD }}"
