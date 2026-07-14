@@ -38,7 +38,7 @@ jobs:
         run: |
           project_version="$(./gradlew properties --console=plain -q | sed -n 's/^version: //p' | head -n 1)"
 
-          if [[ "$RELEASE_VERSION" != "$project_version" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "release" && "$RELEASE_VERSION" != "$project_version" ]]; then
             echo "Release tag $RELEASE_VERSION does not match project version $project_version." >&2
             exit 1
           fi
@@ -68,17 +68,18 @@ jobs:
 
       - name: "Decode GPG Key"
         run: |
-          echo "${{ secrets.SIGNING_SECRET_KEY_RING_FILE }}" > ~/.gradle/secring.gpg.b64
-          base64 --decode -i ~/.gradle/secring.gpg.b64 -o ~/.gradle/secring.gpg
+          echo "${{ secrets.SIGNING_SECRET_KEY_RING_FILE }}" > "$GRADLE_USER_HOME/secring.gpg.b64"
+          base64 -d "$GRADLE_USER_HOME/secring.gpg.b64" > "$GRADLE_USER_HOME/secring.gpg"
         shell: bash
 
       - name: Build Windows artifacts
+        shell: bash
         run: >-
-          .\gradlew.bat
+          ./gradlew
           :biometric:publishMingwX64PublicationToWindowsStagingRepository
           :biometric:syncWindowsHelloJvmNativeResource
-          -Pkoncierge.stageMingwX64Publication=true
-          "-Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg)"
+          "-Pkoncierge.stageMingwX64Publication=true"
+          -Psigning.secretKeyRingFile="$GRADLE_USER_HOME/secring.gpg"
           "-Psigning.keyId=${{ secrets.SIGNING_KEY_ID }}"
           "-Psigning.password=${{ secrets.SIGNING_PASSWORD }}"
 
@@ -131,8 +132,8 @@ jobs:
 
       - name: "Decode GPG Key"
         run: |
-          echo "${{ secrets.SIGNING_SECRET_KEY_RING_FILE }}" > ~/.gradle/secring.gpg.b64
-          base64 --decode -i ~/.gradle/secring.gpg.b64 -o ~/.gradle/secring.gpg
+          echo "${{ secrets.SIGNING_SECRET_KEY_RING_FILE }}" > "$GRADLE_USER_HOME/secring.gpg.b64"
+          base64 --decode -i "$GRADLE_USER_HOME/secring.gpg.b64" -o "$GRADLE_USER_HOME/secring.gpg"
         shell: bash
 
       - name: Build and publish all remaining publications
@@ -144,15 +145,9 @@ jobs:
           :auth-compose:publishAndroidPublicationToMavenCentralRepository
           :auth-compose:publishJvmPublicationToMavenCentralRepository
           :auth-compose:publishKotlinMultiplatformPublicationToMavenCentralRepository
-          :biometric:publishAndroidPublicationToMavenCentralRepository
-          :biometric:publishJvmPublicationToMavenCentralRepository
-          :biometric:publishKotlinMultiplatformPublicationToMavenCentralRepository
-          :biometric:publishMacosArm64PublicationToMavenCentralRepository
-          :biometric:mergeMingwX64Publication
+          :biometric:assembleMavenCentralStagingRepository
           -Pkoncierge.includeMingwX64InPublicationMetadata=true
-          -PmavenCentralAutomaticPublishing=true
-          -PmavenCentralDeploymentValidation=PUBLISHED
-          -Psigning.secretKeyRingFile="$(echo ~/.gradle/secring.gpg)"
+          -Psigning.secretKeyRingFile="$GRADLE_USER_HOME/secring.gpg"
           -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}"
           -Psigning.password="${{ secrets.SIGNING_PASSWORD }}"
         env:
