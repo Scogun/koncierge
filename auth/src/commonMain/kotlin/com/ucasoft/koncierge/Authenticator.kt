@@ -7,30 +7,31 @@ import com.ucasoft.koncierge.store.SettingsPinCodeStoreProvider
 
 open class Authenticator(
     private val koncierge: Koncierge,
-    val pinCodeHashProvider: PinCodeHashProvider = CryptographyPinCodeHashProvider(),
-    val pinCodeStoreProvider: PinCodeStoreProvider = SettingsPinCodeStoreProvider()
+    private val pinCodeHashProvider: PinCodeHashProvider = CryptographyPinCodeHashProvider(),
+    private val pinCodeStoreProvider: PinCodeStoreProvider = SettingsPinCodeStoreProvider()
 ) {
+
+    val isPinCodeSet: Boolean
+        get() = !pinCodeStoreProvider.get().isNullOrBlank()
+    
+    val isBiometryAvailable: Boolean
+        get() = koncierge.isBiometricAvailable()
 
     suspend fun storePinCode(pinCode: String) {
         pinCodeStoreProvider.store(pinCodeHashProvider.hash(pinCode))
     }
 
+    fun removePinCode() {
+        pinCodeStoreProvider.remove()
+    }
+
     suspend fun verifyPinCode(pinCode: String): Boolean {
         val storedPinCodeHash = pinCodeStoreProvider.get() ?: return false
-        val pinCodeHash = pinCodeHashProvider.hash(pinCode)
-
-        return constantTimeEquals(storedPinCodeHash, pinCodeHash)
+        return constantTimeEquals(storedPinCodeHash, pinCodeHashProvider.hash(pinCode))
     }
 
-    fun isBiometryAvailable(): Boolean = koncierge.isBiometricAvailable()
-
-    suspend fun verifyBiometry(): Boolean {
-        if (isBiometryAvailable()) {
-            return koncierge.authenticate("") == BiometricResults.AuthenticationSuccessful
-        }
-
-        return false
-    }
+    suspend fun verifyBiometry(message: String) =
+        isBiometryAvailable && koncierge.authenticate(message) == BiometricResults.AuthenticationSuccessful
 
     private fun constantTimeEquals(left: String, right: String): Boolean {
         val maxLength = maxOf(left.length, right.length)

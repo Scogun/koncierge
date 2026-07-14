@@ -190,7 +190,7 @@ kotlin {
     jvm()
 
     androidLibrary {
-        namespace = "com.ucasoft.koncierge"
+        namespace = "com.ucasoft.koncierge.biometric"
         compileSdk = 36
         minSdk = 26
         buildToolsVersion = "36.1.0"
@@ -204,17 +204,6 @@ kotlin {
                 }
             }
             compilations["main"].cinterops {
-                // TODO Disable WinBio for now
-                /*create("wbf") {
-                    includeDirs(
-                        "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared",
-                        "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um"
-                    )
-                    compilerOpts(
-                        "-D_AMD64_",
-                        "-DWIN32_LEAN_AND_MEAN"
-                    )
-                }*/
                 create("windowsHello") {
                     definitionFile.set(project.file("src/nativeInterop/cinterop/windowsHello.def"))
                     includeDirs(project.file("src/nativeInterop/windows-hello/include"))

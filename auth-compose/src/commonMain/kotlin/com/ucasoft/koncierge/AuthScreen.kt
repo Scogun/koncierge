@@ -96,12 +96,13 @@ fun AuthScreen(
     supportingContent: @Composable () -> Unit = {},
     pinLength: Int = 4,
     biometryEnabled: Boolean = true,
+    biometricCaption: String = "Unlock with your fingerprint",
     autoRequestBiometry: Boolean = true,
     onAuthorizationFailed: (AuthScreenAuthorizationMethod) -> Unit = {},
     onAuthorized: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    val showBiometry = biometryEnabled && authenticator.isBiometryAvailable()
+    val showBiometry = biometryEnabled && authenticator.isBiometryAvailable
     val currentOnAuthorized by rememberUpdatedState(onAuthorized)
     val currentOnAuthorizationFailed by rememberUpdatedState(onAuthorizationFailed)
     var biometryRequestInProgress by remember { mutableStateOf(false) }
@@ -112,7 +113,7 @@ fun AuthScreen(
         }
 
         biometryRequestInProgress = true
-        val authorized = authenticator.verifyBiometry()
+        val authorized = authenticator.verifyBiometry(biometricCaption)
         biometryRequestInProgress = false
 
         if (authorized) {

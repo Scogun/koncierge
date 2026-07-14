@@ -1,6 +1,7 @@
 name: Publish to Maven Central
 
 on:
+  workflow_dispatch:
   release:
     types:
       - created
@@ -154,3 +155,6 @@ jobs:
           -Psigning.secretKeyRingFile="$(echo ~/.gradle/secring.gpg)"
           -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}"
           -Psigning.password="${{ secrets.SIGNING_PASSWORD }}"
+        env:
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_TOKEN_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_TOKEN_PASSWORD }}
