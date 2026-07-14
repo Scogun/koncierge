@@ -2,7 +2,9 @@
 
 Authentication and biometric support for Kotlin Multiplatform.
 
-[![GitHub](https://img.shields.io/github/license/Scogun/koncierge?color=blue)](LICENSE) ![Publish workflow](https://github.com/Scogun/koncierge/actions/workflows/publish.yml/badge.svg) [![Maven Central](https://img.shields.io/maven-central/v/com.ucasoft.koncierge/biometric?color=blue)](https://central.sonatype.com/artifact/com.ucasoft.koncierge/biometric)
+[![GitHub](https://img.shields.io/github/license/Scogun/koncierge?color=blue)](LICENSE)
+![Publish workflow](https://github.com/Scogun/koncierge/actions/workflows/publish.yml/badge.svg)
+[![Maven Central](https://img.shields.io/maven-central/v/com.ucasoft.koncierge/biometric?color=blue)](https://search.maven.org/artifact/com.ucasoft.koncierge/biometric)
 
 ### Features
 
@@ -33,10 +35,10 @@ Choose the highest-level module that your application needs. `auth-compose` expo
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("com.ucasoft.koncierge:biometric:0.1.0")
+            implementation("com.ucasoft.koncierge:biometric:0.2.0")
             // Or:
-            // implementation("com.ucasoft.koncierge:auth:0.1.0")
-            // implementation("com.ucasoft.koncierge:auth-compose:0.1.0")
+            // implementation("com.ucasoft.koncierge:auth:0.2.0")
+            // implementation("com.ucasoft.koncierge:auth-compose:0.2.0")
         }
     }
 }
@@ -122,7 +124,7 @@ Biometric authentication is requested automatically when it is available. Set `a
 
 ### Current status
 
-Koncierge is currently at version `0.1.0` and is under active development.
+Koncierge is currently at version `0.2.0` and is under active development.
 
 ### License
 
