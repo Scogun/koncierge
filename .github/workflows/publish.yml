@@ -73,12 +73,13 @@ jobs:
         shell: bash
 
       - name: Build Windows artifacts
+        shell: bash
         run: >-
-          .\gradlew.bat
+          ./gradlew
           :biometric:publishMingwX64PublicationToWindowsStagingRepository
           :biometric:syncWindowsHelloJvmNativeResource
-          -Pkoncierge.stageMingwX64Publication=true
-          "-Psigning.secretKeyRingFile=$env:GRADLE_USER_HOME/secring.gpg"
+          "-Pkoncierge.stageMingwX64Publication=true"
+          -Psigning.secretKeyRingFile="$GRADLE_USER_HOME/secring.gpg"
           "-Psigning.keyId=${{ secrets.SIGNING_KEY_ID }}"
           "-Psigning.password=${{ secrets.SIGNING_PASSWORD }}"
 
@@ -152,7 +153,7 @@ jobs:
           -Pkoncierge.includeMingwX64InPublicationMetadata=true
           -PmavenCentralAutomaticPublishing=true
           -PmavenCentralDeploymentValidation=PUBLISHED
-          -Psigning.secretKeyRingFile="$env:GRADLE_USER_HOME/secring.gpg"
+          -Psigning.secretKeyRingFile="$GRADLE_USER_HOME/secring.gpg"
           -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}"
           -Psigning.password="${{ secrets.SIGNING_PASSWORD }}"
         env:
