@@ -10,11 +10,11 @@ import platform.darwin.dispatch_semaphore_wait
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-fun authenticateWithTouchId() {
+fun authenticateWithTouchId() = memScoped {
     val context = LAContext()
-    val errorRef = memScoped { alloc<ObjCObjectVar<NSError?>>().ptr }
+    val errorRef = alloc<ObjCObjectVar<NSError?>>()
 
-    if (context.canEvaluatePolicy(LAPolicyDeviceOwnerAuthenticationWithBiometrics, errorRef)) {
+    if (context.canEvaluatePolicy(LAPolicyDeviceOwnerAuthenticationWithBiometrics, errorRef.ptr)) {
 
         val semaphore = dispatch_semaphore_create(0)
 
@@ -33,6 +33,6 @@ fun authenticateWithTouchId() {
 
         dispatch_semaphore_wait(semaphore, computeTime(5.seconds))
     } else {
-        println("Error: ${errorRef.pointed.value?.localizedDescription}")
+        println("Error: ${errorRef.value?.localizedDescription}")
     }
 }

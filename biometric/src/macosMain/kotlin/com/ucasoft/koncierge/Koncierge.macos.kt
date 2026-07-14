@@ -44,15 +44,18 @@ actual class Koncierge {
     }
 
     @OptIn(BetaInteropApi::class)
-    private fun isAvailable(): BiometricResults {
-        val errorRef = memScoped { alloc<ObjCObjectVar<NSError?>>().ptr }
-        val result = context.canEvaluatePolicy(LAPolicyDeviceOwnerAuthenticationWithBiometrics, errorRef)
+    private fun isAvailable(): BiometricResults = memScoped {
+        val errorRef = alloc<ObjCObjectVar<NSError?>>()
+        val result = context.canEvaluatePolicy(
+            LAPolicyDeviceOwnerAuthenticationWithBiometrics,
+            errorRef.ptr,
+        )
         if (result) {
-            return BiometricResults.Available
+            return@memScoped BiometricResults.Available
         }
 
-        val error = errorRef.pointed.value
-        return error.toBiometricResult()
+        val error = errorRef.value
+        return@memScoped error.toBiometricResult()
     }
 
     private fun NSError?.toBiometricResult(): BiometricResults {
