@@ -324,6 +324,6 @@ mavenPublishing {
     publishToMavenCentral()
     signAllPublications()
     pom {
-        configurePom("Koncierge Biometric", "The main library for Multiplatform Biometric authentication", this)
+        configurePom("Koncierge Biometric", "Common biometric API and platform implementations", this)
     }
 }

@@ -47,6 +47,6 @@ mavenPublishing {
     publishToMavenCentral()
     signAllPublications()
     pom {
-        configurePom("Koncierge Auth", "Support library provides basic Auth functionality", this)
+        configurePom("Koncierge Auth", "PIN storage, hashing, and combined PIN/biometric authentication", this)
     }
 }

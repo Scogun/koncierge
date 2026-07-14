@@ -54,6 +54,6 @@ mavenPublishing {
     publishToMavenCentral()
     signAllPublications()
     pom {
-        configurePom("Koncierge Auth Compose", "Support library provides basic Compose UI for Auth functionality", this)
+        configurePom("Koncierge Auth Compose", "Compose Multiplatform authentication screen", this)
     }
 }
