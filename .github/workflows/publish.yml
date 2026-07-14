@@ -1,0 +1,156 @@
+name: Publish to Maven Central
+
+on:
+  release:
+    types:
+      - created
+
+permissions:
+  contents: read
+
+concurrency:
+  group: maven-central-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate-version:
+    name: Validate release version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Check release version
+        id: version
+        env:
+          RELEASE_VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          project_version="$(./gradlew properties --console=plain -q | sed -n 's/^version: //p' | head -n 1)"
+
+          if [[ "$RELEASE_VERSION" != "$project_version" ]]; then
+            echo "Release tag $RELEASE_VERSION does not match project version $project_version." >&2
+            exit 1
+          fi
+
+          echo "version=$project_version" >> "$GITHUB_OUTPUT"
+
+  build-windows:
+    name: Build Windows target
+    needs: validate-version
+    runs-on: windows-latest
+    environment: maven-central
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: "Set Up JDK"
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Prepare Kotlin/Native toolchain
+        run: .\gradlew.bat :biometric:downloadKotlinNativeDistribution
+
+      - name: "Decode GPG Key"
+        run: |
+          echo "${{ secrets.SIGNING_SECRET_KEY_RING_FILE }}" > ~/.gradle/secring.gpg.b64
+          base64 --decode -i ~/.gradle/secring.gpg.b64 -o ~/.gradle/secring.gpg
+        shell: bash
+
+      - name: Build Windows artifacts
+        run: >-
+          .\gradlew.bat
+          :biometric:publishMingwX64PublicationToWindowsStagingRepository
+          :biometric:syncWindowsHelloJvmNativeResource
+          -Pkoncierge.stageMingwX64Publication=true
+          "-Psigning.secretKeyRingFile=$(echo ~/.gradle/secring.gpg)"
+          "-Psigning.keyId=${{ secrets.SIGNING_KEY_ID }}"
+          "-Psigning.password=${{ secrets.SIGNING_PASSWORD }}"
+
+      - name: Save signed mingwX64 publication
+        uses: actions/upload-artifact@v7
+        with:
+          name: mingwx64-publication-${{ needs.validate-version.outputs.version }}
+          path: biometric/build/publishing/windowsStaging
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Save Windows JVM native library
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-hello-jvm-${{ needs.validate-version.outputs.version }}
+          path: biometric/build/generated/windows-hello-jvm/resources/native/windows/x86-64/windows_hello.dll
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-remaining:
+    name: Publish all targets
+    needs:
+      - validate-version
+      - build-windows
+    runs-on: macos-latest
+    environment: maven-central
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Restore Windows JVM native library
+        uses: actions/download-artifact@v8
+        with:
+          name: windows-hello-jvm-${{ needs.validate-version.outputs.version }}
+          path: biometric/build/generated/windows-hello-jvm/resources/native/windows/x86-64
+
+      - name: Restore signed mingwX64 publication
+        uses: actions/download-artifact@v8
+        with:
+          name: mingwx64-publication-${{ needs.validate-version.outputs.version }}
+          path: biometric/build/windows-maven-repository
+
+      - name: "Decode GPG Key"
+        run: |
+          echo "${{ secrets.SIGNING_SECRET_KEY_RING_FILE }}" > ~/.gradle/secring.gpg.b64
+          base64 --decode -i ~/.gradle/secring.gpg.b64 -o ~/.gradle/secring.gpg
+        shell: bash
+
+      - name: Build and publish all remaining publications
+        run: >-
+          ./gradlew
+          :auth:publishAndroidPublicationToMavenCentralRepository
+          :auth:publishJvmPublicationToMavenCentralRepository
+          :auth:publishKotlinMultiplatformPublicationToMavenCentralRepository
+          :auth-compose:publishAndroidPublicationToMavenCentralRepository
+          :auth-compose:publishJvmPublicationToMavenCentralRepository
+          :auth-compose:publishKotlinMultiplatformPublicationToMavenCentralRepository
+          :biometric:publishAndroidPublicationToMavenCentralRepository
+          :biometric:publishJvmPublicationToMavenCentralRepository
+          :biometric:publishKotlinMultiplatformPublicationToMavenCentralRepository
+          :biometric:publishMacosArm64PublicationToMavenCentralRepository
+          :biometric:mergeMingwX64Publication
+          -Pkoncierge.includeMingwX64InPublicationMetadata=true
+          -PmavenCentralAutomaticPublishing=true
+          -PmavenCentralDeploymentValidation=PUBLISHED
+          -Psigning.secretKeyRingFile="$(echo ~/.gradle/secring.gpg)"
+          -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}"
+          -Psigning.password="${{ secrets.SIGNING_PASSWORD }}"

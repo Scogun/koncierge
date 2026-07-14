@@ -9,6 +9,13 @@ plugins {
 val hostOs = System.getProperty("os.name")
 val isWindows = hostOs.startsWith("Windows")
 val isMac = hostOs.startsWith("Mac")
+val includeMingwX64InPublicationMetadata = providers
+    .gradleProperty("koncierge.includeMingwX64InPublicationMetadata")
+    .map(String::toBoolean)
+    .orElse(false)
+val stageMingwX64Publication = providers.gradleProperty("koncierge.stageMingwX64Publication")
+    .map(String::toBoolean)
+    .orElse(false)
 
 val windowsHelloNativeDir = layout.projectDirectory.dir("src/nativeInterop/windows-hello")
 val windowsHelloNativeObjectFile = layout.buildDirectory.file("windows-hello-native/obj/windows_hello.o")
@@ -189,7 +196,7 @@ kotlin {
         buildToolsVersion = "36.1.0"
     }
 
-    if (isWindows) {
+    if (isWindows || (isMac && includeMingwX64InPublicationMetadata.get())) {
         mingwX64 {
             binaries {
                 executable {
@@ -245,12 +252,8 @@ kotlin {
             }
         }
         jvmMain {
-            if (isWindows) {
-                resources.srcDir(windowsHelloJvmResourcesDir)
-            }
-            if (isMac) {
-                resources.srcDir(macosBiometricJvmResourcesDir)
-            }
+            resources.srcDir(windowsHelloJvmResourcesDir)
+            resources.srcDir(macosBiometricJvmResourcesDir)
             dependencies {
                 implementation(libs.jna)
             }
@@ -288,6 +291,32 @@ if (isWindows) {
 if (isMac) {
     tasks.named("jvmProcessResources") {
         dependsOn(syncMacosBiometricJvmNativeResource)
+    }
+
+    tasks.register<Copy>("mergeMingwX64Publication") {
+        group = "publishing"
+        description = "Merges the signed mingwX64 publication built on Windows into the Maven Central bundle."
+        dependsOn("prepareMavenCentralPublishing")
+        mustRunAfter(
+            "publishAndroidPublicationToMavenCentralRepository",
+            "publishJvmPublicationToMavenCentralRepository",
+            "publishKotlinMultiplatformPublicationToMavenCentralRepository",
+            "publishMacosArm64PublicationToMavenCentralRepository",
+        )
+
+        from(layout.buildDirectory.dir("windows-maven-repository"))
+        into(layout.buildDirectory.dir("publishing/mavenCentral"))
+    }
+}
+
+if (stageMingwX64Publication.get()) {
+    publishing {
+        repositories {
+            maven {
+                name = "windowsStaging"
+                setUrl(layout.buildDirectory.dir("publishing/windowsStaging"))
+            }
+        }
     }
 }
 
