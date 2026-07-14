@@ -15,7 +15,7 @@ val windowsHelloNativeObjectFile = layout.buildDirectory.file("windows-hello-nat
 val windowsHelloNativeArchiveFile = layout.buildDirectory.file("windows-hello-native/bin/Release/libwindows_hello.a")
 val windowsHelloJvmObjectFile = layout.buildDirectory.file("windows-hello-jvm/obj/windows_hello.o")
 val windowsHelloJvmLibraryFile = layout.buildDirectory.file("windows-hello-jvm/bin/windows_hello.dll")
-val windowsHelloJvmResourceFile = layout.projectDirectory.file("src/jvmMain/resources/native/windows/x86-64/windows_hello.dll")
+val windowsHelloJvmResourcesDir = layout.buildDirectory.dir("generated/windows-hello-jvm/resources")
 val windowsHelloMingwRoot = providers.gradleProperty("windowsHello.mingwRoot")
     .map(::File)
     .orElse(providers.provider {
@@ -141,7 +141,7 @@ val compileWindowsHelloJvmNative = registerWindowsHelloCompileTask(
 
 val buildWindowsHelloJvmNative = registerWindowsHelloBuildTask(
     "buildWindowsHelloJvmNative",
-    "Builds the Windows Hello static archive used by the JVM target.",
+    "Builds the Windows Hello DLL used by the JVM target.",
     compileWindowsHelloJvmNative,
     windowsHelloNativeDir,
     windowsHelloJvmObjectFile,
@@ -153,14 +153,16 @@ val buildWindowsHelloJvmNative = registerWindowsHelloBuildTask(
     "-luser32",
 )
 
-val syncWindowsHelloJvmNativeResource = tasks.register<Copy>("syncWindowsHelloJvmNativeResource") {
+val syncWindowsHelloJvmNativeResource = tasks.register<Sync>("syncWindowsHelloJvmNativeResource") {
     group = "build"
-    description = "Refreshes the packaged Windows Hello JVM DLL resource."
+    description = "Stages the Windows Hello DLL as a JVM resource."
     onlyIf { isWindows }
     dependsOn(buildWindowsHelloJvmNative)
 
-    from(windowsHelloJvmLibraryFile)
-    into(windowsHelloJvmResourceFile.asFile.parentFile)
+    from(windowsHelloJvmLibraryFile) {
+        into("native/windows/x86-64")
+    }
+    into(windowsHelloJvmResourcesDir)
 }
 
 val syncMacosBiometricJvmNativeResource = tasks.register<Sync>("syncMacosBiometricJvmNativeResource") {
@@ -173,20 +175,6 @@ val syncMacosBiometricJvmNativeResource = tasks.register<Sync>("syncMacosBiometr
         into("native/macos/arm64")
     }
     into(macosBiometricJvmResourcesDir)
-}
-
-val verifyWindowsHelloJvmNativeResource = tasks.register("verifyWindowsHelloJvmNativeResource") {
-    group = "verification"
-    description = "Verifies that the Windows Hello JVM DLL is packaged as a source resource."
-
-    doLast {
-        if (!windowsHelloJvmResourceFile.asFile.isFile) {
-            throw GradleException(
-                "Missing ${windowsHelloJvmResourceFile.asFile}. " +
-                    "Run syncWindowsHelloJvmNativeResource on Windows before publishing."
-            )
-        }
-    }
 }
 
 kotlin {
@@ -257,7 +245,12 @@ kotlin {
             }
         }
         jvmMain {
-            resources.srcDir(macosBiometricJvmResourcesDir)
+            if (isWindows) {
+                resources.srcDir(windowsHelloJvmResourcesDir)
+            }
+            if (isMac) {
+                resources.srcDir(macosBiometricJvmResourcesDir)
+            }
             dependencies {
                 implementation(libs.jna)
             }
@@ -288,7 +281,7 @@ tasks.matching { it.name.startsWith("link") && it.name.endsWith("ExecutableMingw
 
 if (isWindows) {
     tasks.named("jvmProcessResources") {
-        dependsOn(verifyWindowsHelloJvmNativeResource)
+        dependsOn(syncWindowsHelloJvmNativeResource)
     }
 }
 
