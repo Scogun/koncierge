@@ -1,10 +1,4 @@
 pluginManagement {
-    resolutionStrategy {
-        plugins {
-            val kotlinVersion = "2.4.0"
-            kotlin("multiplatform") version kotlinVersion apply false
-        }
-    }
     repositories {
         google()
         gradlePluginPortal()
@@ -16,3 +10,7 @@ plugins {
 }
 
 rootProject.name = "koncierge"
+
+include(":auth")
+include(":auth-compose")
+include(":biometric")
