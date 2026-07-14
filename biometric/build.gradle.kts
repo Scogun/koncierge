@@ -282,19 +282,52 @@ if (isMac) {
         dependsOn(syncMacosBiometricJvmNativeResource)
     }
 
-    tasks.register<Copy>("mergeMingwX64Publication") {
+    val mavenCentralStaging = layout.buildDirectory.dir("publishing/mavenCentral")
+    val macosStaging = layout.buildDirectory.dir("publishing/macosStaging")
+
+    publishing {
+        repositories {
+            maven {
+                name = "macosStaging"
+                setUrl(macosStaging)
+            }
+        }
+    }
+
+    tasks.register<Sync>("assembleMavenCentralStagingRepository") {
         group = "publishing"
-        description = "Merges the signed mingwX64 publication built on Windows into the Maven Central bundle."
-        dependsOn("prepareMavenCentralPublishing")
-        mustRunAfter(
-            "publishAndroidPublicationToMavenCentralRepository",
-            "publishJvmPublicationToMavenCentralRepository",
-            "publishKotlinMultiplatformPublicationToMavenCentralRepository",
-            "publishMacosArm64PublicationToMavenCentralRepository",
+        description = "Combines the biometric publications built on macOS and Windows for Maven Central."
+        dependsOn(
+            "prepareMavenCentralPublishing",
+            "publishAndroidPublicationToMacosStagingRepository",
+            "publishJvmPublicationToMacosStagingRepository",
+            "publishKotlinMultiplatformPublicationToMacosStagingRepository",
+            "publishMacosArm64PublicationToMacosStagingRepository",
         )
 
+        from(macosStaging)
         from(layout.buildDirectory.dir("windows-maven-repository"))
-        into(layout.buildDirectory.dir("publishing/mavenCentral"))
+        into(mavenCentralStaging)
+
+        doLast {
+            val version = project.version.toString()
+            val groupPath = project.group.toString().replace('.', '/')
+            val repositoryRoot = mavenCentralStaging.get().asFile
+            val expectedArtifactIds = listOf(
+                "biometric",
+                "biometric-android",
+                "biometric-jvm",
+                "biometric-macosarm64",
+                "biometric-mingwx64",
+            )
+
+            expectedArtifactIds.forEach { artifactId ->
+                val pom = repositoryRoot.resolve("$groupPath/$artifactId/$version/$artifactId-$version.pom")
+                if (!pom.isFile) {
+                    throw GradleException("Maven Central staging is missing $artifactId:$version (${pom.absolutePath}).")
+                }
+            }
+        }
     }
 }
 

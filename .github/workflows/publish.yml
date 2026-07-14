@@ -145,11 +145,7 @@ jobs:
           :auth-compose:publishAndroidPublicationToMavenCentralRepository
           :auth-compose:publishJvmPublicationToMavenCentralRepository
           :auth-compose:publishKotlinMultiplatformPublicationToMavenCentralRepository
-          :biometric:publishAndroidPublicationToMavenCentralRepository
-          :biometric:publishJvmPublicationToMavenCentralRepository
-          :biometric:publishKotlinMultiplatformPublicationToMavenCentralRepository
-          :biometric:publishMacosArm64PublicationToMavenCentralRepository
-          :biometric:mergeMingwX64Publication
+          :biometric:assembleMavenCentralStagingRepository
           -Pkoncierge.includeMingwX64InPublicationMetadata=true
           -Psigning.secretKeyRingFile="$GRADLE_USER_HOME/secring.gpg"
           -Psigning.keyId="${{ secrets.SIGNING_KEY_ID }}"
