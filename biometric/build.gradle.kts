@@ -190,7 +190,7 @@ kotlin {
     jvm()
 
     androidLibrary {
-        namespace = "com.ucasoft.koncierge"
+        namespace = "com.ucasoft.koncierge.biometric"
         compileSdk = 36
         minSdk = 26
         buildToolsVersion = "36.1.0"
