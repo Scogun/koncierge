@@ -4,7 +4,7 @@ Authentication and biometric support for Kotlin Multiplatform.
 
 [![GitHub](https://img.shields.io/github/license/Scogun/koncierge?color=blue)](LICENSE)
 ![Publish workflow](https://github.com/Scogun/koncierge/actions/workflows/publish.yml/badge.svg)
-[![Maven Central](https://img.shields.io/maven-central/v/com.ucasoft.koncierge/biometric?color=blue)](https://search.maven.org/artifact/com.ucasoft.koncierge/biometric)
+[![Maven Central](https://img.shields.io/maven-central/v/com.ucasoft.koncierge/biometric?color=blue)](https://central.sonatype.com/artifact/com.ucasoft.koncierge/biometric)
 
 ### Features
 
